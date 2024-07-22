@@ -17,10 +17,12 @@ namespace MoreTitleScreens
         private string customTitlesFilePath;
         private string customTitlesDirectory;
         public static bool IsPostInit;
+
         public void OnEnable()
         {
             On.RainWorld.PostModsInit += RainWorld_PostModsInit;
         }
+
         public void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
         {
             orig(self);
@@ -35,29 +37,46 @@ namespace MoreTitleScreens
             Logger.LogInfo($"Custom titles directory: {customTitlesDirectory}");
             IL.Menu.IntroRoll.ctor += IntroRoll_ctor;
         }
-            
+
         public void IntroRoll_ctor(ILContext il)
         {
             var cursor = new ILCursor(il);
 
-            if (cursor.TryGotoNext(i => i.MatchNewarr<string>()))
-               
+            try
             {
-                if(cursor.TryGotoNext(MoveType.After, i => i.MatchStloc(3)))
+                if (cursor.TryGotoNext(i => i.MatchNewarr<string>()))
                 {
-                    cursor.Emit(OpCodes.Ldloc_3);
-                    cursor.EmitDelegate<Func<string[], string[]>>((oldTitleImages) => [.. oldTitleImages, "FFwhite", "FFred", "FFyellow", "Death", "DeathKarma",
-"UnusedSpear", "Lights", "Dusk", "Night", "gormMurder", "Sky", "ScavMarks"]);
-                    cursor.Emit(OpCodes.Stloc_3);
+                    // Declare the local index within the scope
+                    int localIndex = -1;
+
+                    if (cursor.TryGotoNext(MoveType.After, i => i.MatchStloc(out localIndex)))
+                    {
+                        cursor.Emit(OpCodes.Ldloc, localIndex); // Load the local variable
+                        cursor.EmitDelegate<Func<string[], string[]>>((oldTitleImages) =>
+                        {
+                            return oldTitleImages.Concat(new[]
+                            {
+                                "FFwhite", "FFred", "FFyellow", "Death", "DeathKarma",
+                                "UnusedSpear", "Lights", "Dusk", "Night", "gormMurder",
+                                "Sky", "ScavMarks"
+                            }).ToArray();
+                        });
+                        cursor.Emit(OpCodes.Stloc, localIndex); // Store the modified array back into the local variable
+                    }
+                    else
+                    {
+                        Logger.LogError("Stloc instruction not found.");
+                    }
                 }
                 else
                 {
-                    Logger.LogError("you already know(no stloc(3))");
+                    Logger.LogMessage("Newarr instruction not found.");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                Logger.LogMessage("can't find newarr");
+                Logger.LogError($"Exception occurred in IL editing: {ex.Message}");
+                Logger.LogError(ex.StackTrace);
             }
         }
     }
