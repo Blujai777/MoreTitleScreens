@@ -16,12 +16,19 @@ namespace MoreTitleScreens
     {
         private string customTitlesFilePath;
         private string customTitlesDirectory;
+        public static bool IsPostInit;
         public void OnEnable()
         {
             On.RainWorld.PostModsInit += RainWorld_PostModsInit;
         }
         public void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
         {
+            orig(self);
+            if (IsPostInit)
+            {
+                return;
+            }
+            IsPostInit = true;
             customTitlesFilePath = AssetManager.ResolveFilePath("customTitles.txt");
             customTitlesDirectory = Path.GetDirectoryName(customTitlesFilePath) + "/illustrations";
             Logger.LogInfo($"Resolved custom titles file path: {customTitlesFilePath}");
