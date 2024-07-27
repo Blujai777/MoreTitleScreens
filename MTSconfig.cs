@@ -1,5 +1,9 @@
-﻿using Menu;
+﻿using IL.Menu.Remix;
+using Menu;
 using Menu.Remix.MixedUI;
+using MoreTitleScreens;
+using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -18,7 +22,7 @@ namespace More_title_screens
                "Only custom title screens"
            ]));
         }
-        
+
         // Called when the config menu is opened by the player.
         public override void Initialize()
         {
@@ -30,8 +34,21 @@ namespace More_title_screens
             AddDivider(593f);
             AddTitle(0);
             AddDivider(557f);
-            //AddCheckbox(OnlyCustomTitles, 440f);
+            AddCheckbox(OnlyCustomTitles, 40f);
+            AddSimplebutton(0, 400);
         }
+        private void AddSimplebutton(int tab, float y)
+        {
+            OpSimpleButton simpleButton = new(new Vector2(200, y), new Vector2(200, 30), "Open Mod Directory");
+            simpleButton.OnClick += SimpleButton_OnClick;
+            Tabs[tab].AddItems(simpleButton);
+        }
+
+        private void SimpleButton_OnClick(UIfocusable trigger)
+        {
+            OpenModDirectory();
+        }
+
         private void AddTitle(int tab, string text = "More Title Screens", float yPos = 560f)
         {
             OpLabel title = new(new Vector2(150f, yPos), new Vector2(300f, 30f), text, bigText: true);
@@ -75,5 +92,32 @@ namespace More_title_screens
                 dividerRight
             ]);
         }
+        
+        private void OpenModDirectory()
+        {
+            string modDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            // Normalize path for Windows
+            modDirectory = modDirectory.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
+
+            // Remove the "plugins" directory if present
+            string pluginsPath = Path.Combine("plugins", "");
+            if (modDirectory.EndsWith(pluginsPath))
+            {
+                modDirectory = modDirectory.Substring(0, modDirectory.Length - pluginsPath.Length);
+            }
+
+            if (Directory.Exists(modDirectory))
+            {
+                Process.Start(new ProcessStartInfo()
+                {
+                    FileName = modDirectory,
+                    UseShellExecute = true,
+                    Verb = "open"
+                });
+            }
+        }
     }
+    
 }
+

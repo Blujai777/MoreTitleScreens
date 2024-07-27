@@ -11,6 +11,7 @@ using IL.Menu;
 using Menu;
 using Menu.Remix.MixedUI;
 using More_title_screens;
+using System.Diagnostics;
 
 namespace MoreTitleScreens
 {
@@ -22,16 +23,13 @@ namespace MoreTitleScreens
         private string customTitlesFilePath;
         private string customTitlesDirectory;
         public static bool IsPostInit;
-        //private Menu.OptionsMenu optionsMenuInstance;
-        //private bool initialized;
  
         public void OnEnable()
         {
             On.RainWorld.PostModsInit += RainWorld_PostModsInit;
 
-            
         }
-
+        
         public  void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
         {
             orig(self);
@@ -40,18 +38,24 @@ namespace MoreTitleScreens
                 return;
             }
             IsPostInit = true;
+            string modDirectory = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+            string gameDirectory = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
             customTitlesFilePath = AssetManager.ResolveFilePath("customTitles.txt");
+            
             customTitlesDirectory = Path.GetDirectoryName(customTitlesFilePath) + "/illustrations";
             Logger.LogInfo($"Resolved custom titles file path: {customTitlesFilePath}");
             Logger.LogInfo($"Custom titles directory: {customTitlesDirectory}");
+
             if (MachineConnector.GetRegisteredOI(MOD_ID) != MTSconfig.Instance)
                 MachineConnector.SetRegisteredOI(MOD_ID, MTSconfig.Instance);
+
             IL.Menu.IntroRoll.ctor += IntroRoll_ctor;
         }
-
+        
         public void IntroRoll_ctor(ILContext il)
         {
             var cursor = new ILCursor(il);
+            
 
             try
             {
@@ -64,12 +68,23 @@ namespace MoreTitleScreens
                         cursor.Emit(OpCodes.Ldloc, localIndex); // Load the local variable
                         cursor.EmitDelegate<Func<string[], string[]>>((oldTitleImages) =>
                         {
+                            if (MTSconfig.OnlyCustomTitles.Value)
+                            {
+                                var unwantedTitles = new HashSet<string> { "gourmand", "spear", "rivulet", "saint", "arti" };
+                                oldTitleImages = oldTitleImages.Where(title => !unwantedTitles.Contains(title)).ToArray();
+                                Logger.LogMessage("only custom screens");
+                            }
+                            else
+                            {
+                                Logger.LogMessage("should have msc title screens too");
+                            }
                             string[] customTitles = new string[0];
                             try
                             {
                                 if (File.Exists(customTitlesFilePath))
                                 {
                                     customTitles = File.ReadAllLines(customTitlesFilePath);
+                                    Logger.LogMessage($"read custom titles: {string.Join(", ", customTitles)} ");
                                 }
                                 else
                                 {
@@ -101,6 +116,7 @@ namespace MoreTitleScreens
                 Logger.LogError(ex.StackTrace);
             }
         }
+        
     }
   
 }
