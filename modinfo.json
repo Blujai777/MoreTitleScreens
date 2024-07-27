@@ -1,0 +1,12 @@
+{
+	"id": "Blujai.Titles",
+	"name": "More Titles Screens",
+	"version": "1.0",
+	"hide_version": false,
+	"authors": "Blujai",
+	"description": "Adds more title screens when you open the game past the credits",
+	"requirements": [ "moreslugcats"],
+	"requirements_names": [ "More Slugcats Expansion" ],
+	"checksum_override_version": false,
+	"tags": [ "Cosmetics" ]
+}
