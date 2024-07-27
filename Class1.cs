@@ -8,22 +8,31 @@ using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using BepInEx;
 using IL.Menu;
+using Menu;
+using Menu.Remix.MixedUI;
+using More_title_screens;
 
 namespace MoreTitleScreens
 {
+
     [BepInPlugin("Blujai.Titles", "More Titles Screens", "1.0")]
     public class TitleScreens : BaseUnityPlugin
     {
+        public const string MOD_ID = "Blujai.Titles";
         private string customTitlesFilePath;
         private string customTitlesDirectory;
         public static bool IsPostInit;
-
+        //private Menu.OptionsMenu optionsMenuInstance;
+        //private bool initialized;
+ 
         public void OnEnable()
         {
             On.RainWorld.PostModsInit += RainWorld_PostModsInit;
+
+            
         }
 
-        public void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
+        public  void RainWorld_PostModsInit(On.RainWorld.orig_PostModsInit orig, RainWorld self)
         {
             orig(self);
             if (IsPostInit)
@@ -35,6 +44,8 @@ namespace MoreTitleScreens
             customTitlesDirectory = Path.GetDirectoryName(customTitlesFilePath) + "/illustrations";
             Logger.LogInfo($"Resolved custom titles file path: {customTitlesFilePath}");
             Logger.LogInfo($"Custom titles directory: {customTitlesDirectory}");
+            if (MachineConnector.GetRegisteredOI(MOD_ID) != MTSconfig.Instance)
+                MachineConnector.SetRegisteredOI(MOD_ID, MTSconfig.Instance);
             IL.Menu.IntroRoll.ctor += IntroRoll_ctor;
         }
 
@@ -46,7 +57,6 @@ namespace MoreTitleScreens
             {
                 if (cursor.TryGotoNext(i => i.MatchNewarr<string>()))
                 {
-                    // Declare the local index within the scope
                     int localIndex = -1;
 
                     if (cursor.TryGotoNext(MoveType.After, i => i.MatchStloc(out localIndex)))
@@ -54,12 +64,24 @@ namespace MoreTitleScreens
                         cursor.Emit(OpCodes.Ldloc, localIndex); // Load the local variable
                         cursor.EmitDelegate<Func<string[], string[]>>((oldTitleImages) =>
                         {
-                            return oldTitleImages.Concat(new[]
+                            string[] customTitles = new string[0];
+                            try
                             {
-                                "FFwhite", "FFred", "FFyellow", "Death", "DeathKarma",
-                                "UnusedSpear", "Lights", "Dusk", "Night", "gormMurder",
-                                "Sky", "ScavMarks"
-                            }).ToArray();
+                                if (File.Exists(customTitlesFilePath))
+                                {
+                                    customTitles = File.ReadAllLines(customTitlesFilePath);
+                                }
+                                else
+                                {
+                                    Logger.LogWarning($"Custom titles file not found: {customTitlesFilePath}");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.LogError($"Error reading custom titles file: {ex.Message}");
+                            }
+
+                            return oldTitleImages.Concat(customTitles).ToArray();
                         });
                         cursor.Emit(OpCodes.Stloc, localIndex); // Store the modified array back into the local variable
                     }
@@ -80,4 +102,5 @@ namespace MoreTitleScreens
             }
         }
     }
+  
 }
